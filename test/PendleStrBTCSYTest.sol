@@ -11,12 +11,9 @@ contract PendleStrBTCSYTest is Test {
     address public alice = makeAddr("alice");
     address public bob = makeAddr("bob");
 
-    function setUp() public {
-    }
+    function setUp() public {}
 
-    function testDepositWstrBTC() public {
-    }
+    function testDepositWstrBTC() public {}
 
-    function testDepositStrBTC() public {
-    }
-} 
+    function testDepositStrBTC() public {}
+}
