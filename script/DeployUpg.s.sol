@@ -26,21 +26,11 @@ contract DeployUpgradeableScript is Script {
 
         // Prepare data for initialization
         bytes memory initData = abi.encodeWithSelector(
-            PendleStrBTCSYUpg.initialize.selector,
-            name,
-            symbol,
-            strBTC,
-            wstrBTC,
-            wBTC,
-            wBTCConverter
+            PendleStrBTCSYUpg.initialize.selector, name, symbol, strBTC, wstrBTC, wBTC, wBTCConverter
         );
 
         // Deploy TransparentUpgradeableProxy
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-            address(implementation),
-            owner,
-            initData
-        );
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(implementation), owner, initData);
 
         vm.stopBroadcast();
 

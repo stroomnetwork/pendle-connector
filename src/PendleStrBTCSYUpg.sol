@@ -24,7 +24,7 @@ contract PendleStrBTCSYUpg is SYBaseUpg {
         address _wBTCConverter
     ) external initializer {
         __SYBaseUpg_init(_name, _symbol);
-        
+
         strBTC = _strBTC;
         wstrBTC = _wstrBTC;
         wBTC = _wBTC;
@@ -168,12 +168,12 @@ contract PendleStrBTCSYUpg is SYBaseUpg {
      */
     function updateWBTCConverter(address _newConverter) external onlyOwner {
         require(_newConverter != address(0), "Invalid converter address");
-        
+
         _safeApprove(wBTC, wBTCConverter, 0);
         _safeApprove(strBTC, wBTCConverter, 0);
-        
+
         wBTCConverter = _newConverter;
-        
+
         _safeApproveInf(wBTC, wBTCConverter);
         _safeApproveInf(strBTC, wBTCConverter);
     }
@@ -184,4 +184,4 @@ contract PendleStrBTCSYUpg is SYBaseUpg {
     function version() external pure returns (string memory) {
         return "1.0.0";
     }
-} 
+}
