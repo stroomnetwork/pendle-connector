@@ -7,11 +7,8 @@ import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "../src/PendleStrBTCSYUpg.sol";
 
 contract DeployUpgradeableScript is Script {
-    function setUp() public {}
-
     function run() public {
         address owner = vm.envAddress("OWNER");
-        address strBTC = vm.envAddress("STR_BTC_ADDRESS");
         address wstrBTC = vm.envAddress("WSTR_BTC_ADDRESS");
         address wBTC = vm.envAddress("WBTC_ADDRESS");
         address wBTCConverter = vm.envAddress("WBTC_CONVERTER_ADDRESS");
@@ -25,9 +22,8 @@ contract DeployUpgradeableScript is Script {
         PendleStrBTCSYUpg implementation = new PendleStrBTCSYUpg(wstrBTC);
 
         // Prepare data for initialization
-        bytes memory initData = abi.encodeWithSelector(
-            PendleStrBTCSYUpg.initialize.selector, name, symbol, strBTC, wstrBTC, wBTC, wBTCConverter
-        );
+        bytes memory initData =
+            abi.encodeWithSelector(PendleStrBTCSYUpg.initialize.selector, name, symbol, wBTC, wBTCConverter);
 
         // Deploy TransparentUpgradeableProxy
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(address(implementation), owner, initData);

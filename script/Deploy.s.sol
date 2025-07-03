@@ -5,10 +5,7 @@ import "forge-std/Script.sol";
 import "../src/PendleStrBTCSY.sol";
 
 contract DeployScript is Script {
-    function setUp() public {}
-
     function run() public {
-        address strBTC = vm.envAddress("STR_BTC_ADDRESS");
         address wstrBTC = vm.envAddress("WSTR_BTC_ADDRESS");
         address wBTC = vm.envAddress("WBTC_ADDRESS");
         address wBTCConverter = vm.envAddress("WBTC_CONVERTER_ADDRESS");
@@ -18,7 +15,7 @@ contract DeployScript is Script {
 
         vm.startBroadcast();
 
-        PendleStrBTCSY pendleStrBTCSY = new PendleStrBTCSY(name, symbol, strBTC, wstrBTC, wBTC, wBTCConverter);
+        PendleStrBTCSY pendleStrBTCSY = new PendleStrBTCSY(name, symbol, wstrBTC, wBTC, wBTCConverter);
 
         vm.stopBroadcast();
 
