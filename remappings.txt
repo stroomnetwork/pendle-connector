@@ -1,4 +1,5 @@
 Pendle-SY-Public/=lib/Pendle-SY-Public/contracts/
+pendle-sy-tests/=lib/pendle-sy-tests/test
 ds-test/=lib/openzeppelin-contracts-upgradeable/lib/forge-std/lib/ds-test/src/
 erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/
 forge-std/=lib/forge-std/src/

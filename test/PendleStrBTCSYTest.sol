@@ -1,15 +1,89 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.27;
 
-import {Test} from "forge-std/Test.sol";
+import {SYWithAdapterTest} from "pendle-sy-tests/common/SYWithAdapterTest.t.sol";
+import {PendleStroomAdapter} from "../src/PendleStroomAdapter.sol";
+import {IStandardizedYield} from "pendle-sy/interfaces/IStandardizedYield.sol";
 
-contract PendleStroomSYTest is Test {
-    address public alice = makeAddr("alice");
-    address public bob = makeAddr("bob");
+contract PendleStrBTCSYTest is SYWithAdapterTest {
+    address internal constant strBTC = 0xB2723d5dF98689eCA6A4E7321121662DDB9b3017;
+    address internal constant wstrBTC = 0xA3Ca88cfb7bBe9CfBd47df053ffA2130C7E6f770;
+    address internal constant wBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+    address internal constant cbBTC = 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf;
+    address internal constant wBTCConverter = 0x56192F14C1d84e41Db3d5d4C5d407EFDB5CB1352;
+    address internal constant cbBTCConverter = 0xe7b4c44adB17147Ad877EB8607EEB1e95AdF2cD0;
 
-    function setUp() public {}
+    function setUpFork() internal override {
+        vm.createSelectFork(vm.envString("MAINNET_RPC_URL"));
+    }
 
-    function testDepositWstrBTC() public {}
+    function deploySY() internal override {
+        vm.startPrank(deployer);
 
-    function testDepositStrBTC() public {}
+        address adapter = address(new PendleStroomAdapter(wBTC, cbBTC, wBTCConverter, cbBTCConverter));
+
+        sy =
+            IStandardizedYield(deploySYWithAdapter(AdapterType.ERC4626, wstrBTC, "SY Stroom BTC", "SY-StrBTC", adapter));
+        vm.stopPrank();
+    }
+
+    // Allow 0.3% tolerance for converter fees (incoming: 999/1000, outgoing: 999/1000)
+    // Total loss: ~0.2%, so 0.3% provides comfortable margin
+    function getPreviewTestAllowedEps() internal pure override returns (uint256) {
+        return 0.003e18; // 0.3%
+    }
+
+    // Our adapter has fees due to converter rates (999/1000 in both directions)
+    function hasFee() internal pure override returns (bool) {
+        return true;
+    }
+
+    // Test valid pairs:
+    // - wBTC -> wBTC (wBTC converter has wBTC after deposit)
+    // - cbBTC -> cbBTC (cbBTC converter has cbBTC after deposit)
+    // - strBTC -> strBTC (direct)
+    // - wstrBTC -> wstrBTC (direct)
+    // - strBTC -> wstrBTC (ERC4626 deposit)
+    // - wstrBTC -> strBTC (ERC4626 redeem)
+    function _genPreviewDepositThenRedeemTestParams()
+        internal
+        override
+        returns (PreviewDepositThenRedeemTestParam[] memory)
+    {
+        uint256 DENOM = 17;
+        uint256 NUMER = 3;
+        uint256 NUM_TESTS_PER_PAIR = 5;
+
+        address[] memory allTokensIn = getTokensInForPreviewTest();
+        address[] memory allTokensOut = getTokensOutForPreviewTest();
+        delete params;
+
+        uint256 divBy = 1;
+        for (uint256 i = 0; i < allTokensIn.length; ++i) {
+            for (uint256 j = 0; j < allTokensOut.length; ++j) {
+                address tokenIn = allTokensIn[i];
+                address tokenOut = allTokensOut[j];
+
+                bool isValidPair = (tokenIn == tokenOut) || (tokenIn == strBTC && tokenOut == wstrBTC)
+                    || (tokenIn == wstrBTC && tokenOut == strBTC);
+
+                if (!isValidPair) continue;
+
+                uint256 refAmount = refAmountFor(tokenIn);
+                for (uint256 numTest = 0; numTest < NUM_TESTS_PER_PAIR; ++numTest) {
+                    uint256 amountIn = refAmount / divBy;
+                    divBy = (divBy * NUMER) % DENOM;
+
+                    params.push() = PreviewDepositThenRedeemTestParam({
+                        tokenIn: tokenIn,
+                        netTokenIn: amountIn,
+                        tokenOut: tokenOut,
+                        shouldCheck: numTest == 0
+                    });
+                }
+            }
+        }
+
+        return params;
+    }
 }
