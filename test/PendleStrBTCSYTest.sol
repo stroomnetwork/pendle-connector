@@ -38,13 +38,11 @@ contract PendleStrBTCSYTest is SYWithAdapterTest {
         return true;
     }
 
-    // Test valid pairs:
-    // - wBTC -> wBTC (wBTC converter has wBTC after deposit)
-    // - cbBTC -> cbBTC (cbBTC converter has cbBTC after deposit)
-    // - strBTC -> strBTC (direct)
-    // - wstrBTC -> wstrBTC (direct)
-    // - strBTC -> wstrBTC (ERC4626 deposit)
-    // - wstrBTC -> strBTC (ERC4626 redeem)
+    // Test all valid token pairs by excluding invalid ones:
+    // Invalid pairs excluded:
+    // - wBTC -> cbBTC, cbBTC -> wBTC (cross-converter operations)
+    // - strBTC -> wBTC, wstrBTC -> wBTC (depends on wBTCConverter reserves)
+    // - strBTC -> cbBTC, wstrBTC -> cbBTC (depends on cbBTCConverter reserves)
     function _genPreviewDepositThenRedeemTestParams()
         internal
         override
@@ -64,10 +62,14 @@ contract PendleStrBTCSYTest is SYWithAdapterTest {
                 address tokenIn = allTokensIn[i];
                 address tokenOut = allTokensOut[j];
 
-                bool isValidPair = (tokenIn == tokenOut) || (tokenIn == strBTC && tokenOut == wstrBTC)
-                    || (tokenIn == wstrBTC && tokenOut == strBTC);
+                bool isInvalidPair = (tokenIn == wBTC && tokenOut == cbBTC) // Cross-converter
+                    || (tokenIn == cbBTC && tokenOut == wBTC) // Cross-converter
+                    || (tokenIn == strBTC && tokenOut == wBTC) // Depends on wBTCConverter reserves
+                    || (tokenIn == wstrBTC && tokenOut == wBTC) // Depends on wBTCConverter reserves
+                    || (tokenIn == strBTC && tokenOut == cbBTC) // Depends on cbBTCConverter reserves
+                    || (tokenIn == wstrBTC && tokenOut == cbBTC); // Depends on cbBTCConverter reserves
 
-                if (!isValidPair) continue;
+                if (isInvalidPair) continue;
 
                 uint256 refAmount = refAmountFor(tokenIn);
                 for (uint256 numTest = 0; numTest < NUM_TESTS_PER_PAIR; ++numTest) {
