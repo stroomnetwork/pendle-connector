@@ -4,6 +4,9 @@ pragma solidity ^0.8.27;
 import {SYWithAdapterTest} from "pendle-sy-tests/common/SYWithAdapterTest.t.sol";
 import {PendleStroomAdapter} from "../src/PendleStroomAdapter.sol";
 import {IStandardizedYield} from "pendle-sy/interfaces/IStandardizedYield.sol";
+import {IWBTCConverter} from "../src/interfaces/IWBTCConverter.sol";
+import {ICBBTCConverter} from "../src/interfaces/ICBBTCConverter.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract PendleStrBTCSYTest is SYWithAdapterTest {
     address internal constant strBTC = 0xB2723d5dF98689eCA6A4E7321121662DDB9b3017;
@@ -15,6 +18,15 @@ contract PendleStrBTCSYTest is SYWithAdapterTest {
 
     function setUpFork() internal override {
         vm.createSelectFork(vm.envString("MAINNET_RPC_URL"));
+
+        // Add reserves to converters
+        deal(wBTC, address(this), 10e8);
+        IERC20(wBTC).approve(wBTCConverter, 10e8);
+        IWBTCConverter(wBTCConverter).convertWBTCToStrBTC(10e8);
+
+        deal(cbBTC, address(this), 10e8);
+        IERC20(cbBTC).approve(cbBTCConverter, 10e8);
+        ICBBTCConverter(cbBTCConverter).convertCBBTCToStrBTC(10e8);
     }
 
     function deploySY() internal override {
@@ -41,8 +53,6 @@ contract PendleStrBTCSYTest is SYWithAdapterTest {
     // Test all valid token pairs by excluding invalid ones:
     // Invalid pairs excluded:
     // - wBTC -> cbBTC, cbBTC -> wBTC (cross-converter operations)
-    // - strBTC -> wBTC, wstrBTC -> wBTC (depends on wBTCConverter reserves)
-    // - strBTC -> cbBTC, wstrBTC -> cbBTC (depends on cbBTCConverter reserves)
     function _genPreviewDepositThenRedeemTestParams()
         internal
         override
@@ -62,14 +72,12 @@ contract PendleStrBTCSYTest is SYWithAdapterTest {
                 address tokenIn = allTokensIn[i];
                 address tokenOut = allTokensOut[j];
 
-                bool isInvalidPair = (tokenIn == wBTC && tokenOut == cbBTC) // Cross-converter
-                    || (tokenIn == cbBTC && tokenOut == wBTC) // Cross-converter
-                    || (tokenIn == strBTC && tokenOut == wBTC) // Depends on wBTCConverter reserves
-                    || (tokenIn == wstrBTC && tokenOut == wBTC) // Depends on wBTCConverter reserves
-                    || (tokenIn == strBTC && tokenOut == cbBTC) // Depends on cbBTCConverter reserves
-                    || (tokenIn == wstrBTC && tokenOut == cbBTC); // Depends on cbBTCConverter reserves
+                // Only exclude cross-converter operations (wBTC <-> cbBTC)
+                // Reserve-dependent pairs work due to added reserves in setUpFork()
+                bool isCrossConverterPair =
+                    (tokenIn == wBTC && tokenOut == cbBTC) || (tokenIn == cbBTC && tokenOut == wBTC);
 
-                if (isInvalidPair) continue;
+                if (isCrossConverterPair) continue;
 
                 uint256 refAmount = refAmountFor(tokenIn);
                 for (uint256 numTest = 0; numTest < NUM_TESTS_PER_PAIR; ++numTest) {
