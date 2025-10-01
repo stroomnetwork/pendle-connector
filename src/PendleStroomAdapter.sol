@@ -3,14 +3,14 @@ pragma solidity ^0.8.27;
 
 import {IStandardizedYieldAdapter} from "Pendle-SY-Public/interfaces/IStandardizedYieldAdapter.sol";
 import {IWBTCConverter} from "./interfaces/IWBTCConverter.sol";
-import {ICbBTCConverter} from "./interfaces/ICbBTCConverter.sol";
+import {ICBBTCConverter} from "./interfaces/ICBBTCConverter.sol";
 import {SafeERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title PendleStroomAdapter
  * @dev Adapter for converting wBTC and cbBTC to strBTC for Pendle StandardizedYield
  * @notice This adapter allows PendleERC4626WithAdapterSY to accept wBTC and cbBTC deposits
- *         by converting them to strBTC (the pivot token) via IWBTCConverter and ICbBTCConverter
+ *         by converting them to strBTC (the pivot token) via IWBTCConverter and ICBBTCConverter
  */
 contract PendleStroomAdapter is IStandardizedYieldAdapter {
     using SafeERC20 for IERC20;
@@ -39,6 +39,8 @@ contract PendleStroomAdapter is IStandardizedYieldAdapter {
 
         IERC20(wBTC).forceApprove(_wBTCConverter, type(uint256).max);
         IERC20(cbBTC).forceApprove(_cbBTCConverter, type(uint256).max);
+        IERC20(PIVOT_TOKEN).forceApprove(_wBTCConverter, type(uint256).max);
+        IERC20(PIVOT_TOKEN).forceApprove(_cbBTCConverter, type(uint256).max);
     }
 
     /**
@@ -53,7 +55,7 @@ contract PendleStroomAdapter is IStandardizedYieldAdapter {
         if (tokenIn == wBTC) {
             amountOut = IWBTCConverter(wBTCConverter).convertWBTCToStrBTC(amountTokenIn);
         } else {
-            amountOut = ICbBTCConverter(cbBTCConverter).convertCbBTCToStrBTC(amountTokenIn);
+            amountOut = ICBBTCConverter(cbBTCConverter).convertCBBTCToStrBTC(amountTokenIn);
         }
 
         IERC20(PIVOT_TOKEN).safeTransfer(msg.sender, amountOut);
@@ -77,7 +79,7 @@ contract PendleStroomAdapter is IStandardizedYieldAdapter {
         if (tokenOut == wBTC) {
             amountOut = IWBTCConverter(wBTCConverter).convertStrBTCToWBTC(amountPivotTokenIn);
         } else {
-            amountOut = ICbBTCConverter(cbBTCConverter).convertStrBTCToCbBTC(amountPivotTokenIn);
+            amountOut = ICBBTCConverter(cbBTCConverter).convertStrBTCToCBBTC(amountPivotTokenIn);
         }
 
         IERC20(tokenOut).safeTransfer(msg.sender, amountOut);
@@ -106,8 +108,8 @@ contract PendleStroomAdapter is IStandardizedYieldAdapter {
             numerator = IWBTCConverter(wBTCConverter).incomingRateNumerator();
             denominator = IWBTCConverter(wBTCConverter).incomingRateDenominator();
         } else {
-            numerator = ICbBTCConverter(cbBTCConverter).incomingRateNumerator();
-            denominator = ICbBTCConverter(cbBTCConverter).incomingRateDenominator();
+            numerator = ICBBTCConverter(cbBTCConverter).rateNumerator();
+            denominator = ICBBTCConverter(cbBTCConverter).rateDenominator();
         }
 
         amountOut = (amountTokenIn * numerator) / denominator;
@@ -134,8 +136,8 @@ contract PendleStroomAdapter is IStandardizedYieldAdapter {
             numerator = IWBTCConverter(wBTCConverter).outgoingRateNumerator();
             denominator = IWBTCConverter(wBTCConverter).outgoingRateDenominator();
         } else {
-            numerator = ICbBTCConverter(cbBTCConverter).outgoingRateNumerator();
-            denominator = ICbBTCConverter(cbBTCConverter).outgoingRateDenominator();
+            numerator = ICBBTCConverter(cbBTCConverter).rateNumerator();
+            denominator = ICBBTCConverter(cbBTCConverter).rateDenominator();
         }
 
         amountOut = (amountPivotTokenIn * numerator) / denominator;
